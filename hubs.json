@@ -1,0 +1,73 @@
+{
+  "Niznekamsk": {
+    "Beeline": {
+      "operator": "Beeline",
+      "ipaddr": "10.160.166.10",
+      "proto_addr": "10.160.166.1",
+      "nbma_addr": "10.10.12.1",
+      "tunlink": "wan100"
+    },
+     "MTS_RUS": {
+      "operator": "MTS RUS",
+      "ipaddr": "10.160.200.10",
+      "proto_addr": "10.160.200.1",
+      "nbma_addr": "217.198.0.82",
+      "tunlink": "sim1"
+    },
+    "Letai": {
+      "operator": "Letai",
+      "ipaddr": "10.160.167.10",
+      "proto_addr": "10.160.167.1",
+      "nbma_addr": "10.10.11.1",
+      "tunlink": "wan100"
+    },
+    "MegaFon": {
+      "operator": "MegaFon",
+      "ipaddr": "10.160.168.10",
+      "proto_addr": "10.160.168.1",
+      "nbma_addr": "10.10.10.1",
+      "tunlink": "wan100"
+    },
+    "data": {
+      "server_addr": "10.160.172.5",
+      "prefix": "10.160.172.0/26",
+      "tcp_port": "31011"
+    }
+  },
+
+  "Kazan": {
+    "Beeline": {
+      "operator": "Beeline",
+      "ipaddr": "10.160.169.10",
+      "proto_addr": "10.160.169.1",
+      "nbma_addr": "10.10.12.2",
+      "tunlink": "wan100"
+    },
+    "MTS_RUS": {
+      "operator": "MTS RUS",
+      "ipaddr": "10.160.169.10",
+      "proto_addr": "10.160.169.1",
+      "nbma_addr": "10.10.12.2",
+      "tunlink": "wan100"
+    },
+    "Letai": {
+      "operator": "Letai",
+      "ipaddr": "10.160.170.10",
+      "proto_addr": "10.160.170.1",
+      "nbma_addr": "10.10.11.2",
+      "tunlink": "wan100"
+    },
+    "MegaFon": {
+      "operator": "MegaFon",
+      "ipaddr": "10.160.171.10",
+      "proto_addr": "10.160.171.1",
+      "nbma_addr": "10.10.10.2",
+      "tunlink": "wan100"
+    },
+    "data": {
+      "server_addr": "10.160.173.5",
+      "prefix": "10.160.173.0/26",
+      "tcp_port": "31011"
+    }
+  }
+}
