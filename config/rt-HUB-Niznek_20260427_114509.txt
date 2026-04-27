@@ -1,0 +1,449 @@
+[rt-HUB-Niznek]disp current-configuration
+!Software Version V600R024C00SPC100
+!Last configuration was updated at 2026-04-24 16:58:30+03:00 by center
+!Last configuration was saved at 2026-04-24 16:59:26+03:00 by center
+!ase VRPV800R006C00B016D0127-0.0.1
+!grpc VRPV800R006C00B016D0127-0.0.1
+!kms_feature --
+!md_tlm VRPV800R006C00B016D0127-0.0.1
+!telem VRPV800R006C00B016D0127-0.0.1
+#
+pki realm default
+#
+clock timezone MSK add 03:00:00
+#
+sysname rt-HUB-Niznek
+#
+undo ftp server source all-interface
+undo ftp ipv6 server source all-interface
+#
+ssl policy default
+ pki-domain default
+ ssl minimum version tls1.2
+ cipher-suite exclude key-exchange rsa
+ cipher-suite exclude cipher mode cbc
+ cipher-suite exclude hmac sha1
+ diffie-hellman modulus 3072
+ ecdh group curve brainpool
+ signature algorithm-list ed25519 ed448 rsa-pss-pss-sha256 rsa-pss-pss-sha384 rsa-pss-pss-sha512 rsa-pss-rsae-sha256 rsa-pss-rsae-sha384 rsa-pss-rsae-sha512
+#
+transceiver non-certified-alarm disable
+#
+authentication-profile name default_authen_profile
+authentication-profile name dot1x_authen_profile
+authentication-profile name dot1xmac_authen_profile
+authentication-profile name mac_authen_profile
+authentication-profile name multi_authen_profile
+authentication-profile name portal_authen_profile
+ucl-group name default index 1
+#
+dns resolve
+dns server 8.8.8.8
+dns domain sibur.ru
+#
+dhcp enable
+#
+drop-profile default
+#
+ntp ipv6 server disable
+ntp server source-interface all disable
+ntp ipv6 server source-interface all disable
+ntp unicast-server domain 0.pool.ntp.org
+ntp source-interface Vlanif100
+#
+vlan batch 100
+#
+nhrp enable
+#
+error-down auto-recovery cause link-flap interval 60
+#
+undo telnet server-source all-interface
+undo telnet ipv6 server-source all-interface
+#
+diffserv domain default
+#
+ip vpn-instance _management_vpn_
+ ipv4-family
+#
+vlan 100
+ name wwan0_openwrt_emulation
+#
+aaa
+ authentication-scheme default
+  authentication-mode local
+ authorization-scheme default
+  authorization-mode local
+ accounting-scheme default
+  accounting-mode none
+ local-aaa-user password policy administrator
+ domain default
+  authentication-scheme default
+  accounting-scheme default
+ domain default_admin
+  authentication-scheme default
+  accounting-scheme default
+ local-user center password irreversible-cipher $1d$U0fm1$V`%A{J:g9}$w:)"$~ug-Yw_z<O&iA!79fiR>z{:Y(pDT#392<G'$
+ local-user center privilege level 3
+ local-user center service-type telnet terminal ssh
+#
+free-rule-template name default_free_rule
+#
+portal-access-profile name portal_access_profile
+#
+dot1x-access-profile name dot1x_access_profile
+#
+mac-access-profile name mac_access_profile
+#
+remote-unit
+#
+license
+#
+warranty
+#
+interface Vlanif100
+ mac-address 001e-101f-0000
+ nat enable
+ ip address dhcp-alloc
+#
+interface MEth0/0/0
+ ip binding vpn-instance _management_vpn_
+ ip address 10.160.172.130 255.255.255.192
+#
+interface GE0/0/0
+ description Operator1
+ ip address 10.10.12.1 255.255.255.0
+#
+interface GE0/0/1
+ description Operator2
+ ip address 10.10.11.1 255.255.255.0
+#
+interface GE0/0/2
+ portswitch
+#
+interface GE0/0/3
+ portswitch
+#
+interface GE0/0/4
+ portswitch
+#
+interface GE0/0/5
+ portswitch
+#
+interface GE0/0/6
+ portswitch
+#
+interface GE0/0/7
+ portswitch
+#
+interface GE0/0/8
+ portswitch
+#
+interface GE0/0/9
+ portswitch
+#
+interface GE0/0/10
+ ip address 10.160.172.1 255.255.255.192
+#
+interface GE0/0/11
+ portswitch
+#
+interface GE0/0/12
+ portswitch
+#
+interface GE0/0/13
+ portswitch
+#
+interface GE0/0/14
+ portswitch
+#
+interface GE0/0/15
+ shutdown
+ ip address 217.198.0.82 255.255.255.252
+#
+interface GE0/0/16
+ portswitch
+ port link-type access
+ port default vlan 100
+#
+interface GE0/0/17
+ portswitch
+#
+interface GE0/0/18
+ portswitch
+#
+interface GE0/0/19
+ portswitch
+#
+interface GE0/0/20
+ portswitch
+#
+interface GE0/0/21
+ portswitch
+#
+interface GE0/0/22
+ portswitch
+#
+interface GE0/0/23
+ portswitch
+#
+interface GE0/0/24
+#
+interface GE0/0/25
+#
+interface 10GE0/0/0
+#
+interface 10GE0/0/1
+ ip address 10.160.172.205 255.255.255.252
+ ospf dr-priority 25
+ device transceiver 10GBASE-FIBER
+#
+interface LoopBack0
+ ip address 10.160.165.1 255.255.255.255
+#
+interface Tunnel0
+ mtu 1360
+ description Operator1
+ ip address 10.160.166.1 255.255.255.0
+ tunnel-protocol gre p2mp
+ source 10.10.12.1
+ nhrp enable
+ nhrp network-id 1
+ nhrp entry multicast dynamic
+ nhrp redirect
+ nhrp entry holdtime 1800
+ nhrp authentication cipher %+%##!!!!!!!!!"!!!!"!!!!*!!!!7LTnVOK_g:JFPt<A-2'%[xhLUz\:iRSNI=X!!!!!2jp5!!!!!!7!!!!W%$+9}ej2+J2Jq)Sm`)%+jEP=:$y}M!!!!!!!!!!%+%#
+ nhrp registration no-unique
+ ipsec profile prof_ipsec_0
+ tcp adjust-mss 1360
+#
+interface Tunnel1
+ mtu 1360
+ description Operator2
+ ip address 10.160.167.1 255.255.255.0
+ tunnel-protocol gre p2mp
+ source 10.10.11.1
+ nhrp enable
+ nhrp network-id 2
+ nhrp entry multicast dynamic
+ nhrp redirect
+ nhrp entry holdtime 1800
+ nhrp authentication cipher %+%##!!!!!!!!!"!!!!"!!!!*!!!!7LTnVOK_g:2WP4%Rbb.M5~(o3>dGKF5a46~!!!!!2jp5!!!!!!7!!!!gj6*=/2Fe6Rgwq6t<viD;zI&.X=#7.!!!!!!!!!!%+%#
+ nhrp registration no-unique
+ ipsec profile prof_ipsec_1
+ tcp adjust-mss 1360
+#
+interface Tunnel2
+ mtu 1360
+ description Operator3
+ ip address 10.160.168.1 255.255.255.0
+ tunnel-protocol gre p2mp
+ source GE0/0/2
+ nhrp enable
+ nhrp network-id 3
+ nhrp entry multicast dynamic
+ nhrp redirect
+ nhrp entry holdtime 1800
+ nhrp authentication cipher %+%##!!!!!!!!!"!!!!"!!!!*!!!!7LTnVOK_g:;3ue#Tjwr2[_9C4md;\>oj;tY!!!!!2jp5!!!!!!7!!!!Y5rz:dyg+'CFAP,seqH%fF)mRdI}q:!!!!!!!!!!%+%#
+ nhrp registration no-unique
+ ipsec profile prof_ipsec_2
+ tcp adjust-mss 1360
+#
+interface Tunnel3
+ mtu 1360
+ description Test_Internet__Sim
+ ip address 10.160.200.1 255.255.255.0
+ tunnel-protocol gre p2mp
+ source GE0/0/15
+ nhrp enable
+ nhrp network-id 4
+ nhrp entry multicast dynamic
+ nhrp redirect
+ nhrp entry holdtime 1800
+ nhrp authentication cipher %+%##!!!!!!!!!"!!!!"!!!!*!!!!7LTnVOK_g:N(fmXqAV;;nD@M<4nTg5b0{'G!!!!!2jp5!!!!!!7!!!!yjY})0U*ND!]Z,V*L%+@i&&FX{}-]#!!!!!!!!!!%+%#
+ nhrp registration no-unique
+ ipsec profile prof_ipsec_3
+ tcp adjust-mss 1360
+#
+interface NULL0
+#
+bgp 65001
+ router-id 10.160.165.1
+ bgp dynamic-session-limit 256
+ private-4-byte-as enable
+ group grInt listen internal
+ peer grInt listen-net 10.160.0.0 255.255.0.0
+ #
+ ipv4-family unicast
+  network 10.160.165.1 255.255.255.255
+  network 10.160.172.0 255.255.255.192
+  import-route ospf 1 route-policy ospf2bgp
+  peer grInt enable
+  peer grInt next-hop-local
+#
+ospf 1 router-id 10.160.165.1
+ default-route-advertise permit-preference-less-than 100
+ import-route static cost 50 type 2 tag 172
+ import-route bgp permit-ibgp route-policy bgp2ospf
+ silent-interface Tunnel0
+ silent-interface Tunnel1
+ silent-interface Tunnel2
+ silent-interface Tunnel3
+ area 0.0.0.0
+  network 10.160.165.1 0.0.0.0
+  network 10.160.166.0 0.0.0.255
+  network 10.160.167.0 0.0.0.255
+  network 10.160.168.0 0.0.0.255
+  network 10.160.172.0 0.0.0.63
+  network 10.160.172.204 0.0.0.3
+  network 10.160.200.0 0.0.0.255
+#
+ip ip-prefix bgp2ospf index 10 permit 10.160.160.0 24 greater-equal 29 less-equal 32
+ip ip-prefix bgp2ospf index 20 permit 10.160.161.0 24 greater-equal 29 less-equal 32
+ip ip-prefix bgp2ospf index 30 permit 10.160.162.0 24 greater-equal 29 less-equal 32
+ip ip-prefix bgp2ospf index 40 permit 10.160.163.0 24 greater-equal 29 less-equal 32
+ip ip-prefix bgp2ospf index 50 permit 10.160.200.0 24 greater-equal 29 less-equal 32
+ip ip-prefix ospf2bgp index 10 permit 10.160.172.0 24 greater-equal 26 less-equal 26
+ip ip-prefix ospf2bgp index 20 permit 10.160.173.0 24 greater-equal 26 less-equal 26
+#
+route-policy bgp2ospf permit node 10
+ if-match ip-prefix bgp2ospf
+ apply cost 210
+ apply tag 2012
+#
+route-policy ospf2bgp permit node 10
+ if-match ip-prefix ospf2bgp
+ apply cost 120
+ apply tag 2012
+#
+ip route-static 0.0.0.0 0.0.0.0 217.198.0.81
+#
+snmp-agent
+snmp-agent local-engineid 800007DB03BC4CA023628A
+#
+snmp-agent sys-info version v3
+#
+undo snmp-agent protocol source-status all-interface
+undo snmp-agent protocol source-status ipv6 all-interface
+#
+undo snmp-agent proxy protocol source-status all-interface
+undo snmp-agent proxy protocol source-status ipv6 all-interface
+#
+snmp-agent trap enable
+#
+stelnet server enable
+ssh server rsa-key min-length 3072
+sftp ipv4 server enable
+sftp idle-timeout 60 0
+sftp server default-directory flash:/sftp/
+ssh user center
+ssh user center authentication-type password
+ssh user center service-type all
+ssh server-source -i MEth0/0/0
+undo ssh server-source all-interface
+undo ssh ipv6 server-source all-interface
+ssh authorization-type default aaa
+#
+ssh server cipher aes256_gcm aes128_gcm aes256_ctr aes192_ctr aes128_ctr
+ssh server hmac sha2_512 sha2_256
+ssh server key-exchange dh_group_exchange_sha256 dh_group16_sha512 curve25519_sha256
+#
+ssh server publickey rsa_sha2_256 rsa_sha2_512
+#
+ssh server dh-exchange min-len 3072
+#
+ssh client publickey rsa_sha2_256 rsa_sha2_512
+#
+ssh client cipher aes256_gcm aes128_gcm aes256_ctr aes192_ctr aes128_ctr
+ssh client hmac sha2_512 sha2_256
+ssh client key-exchange dh_group_exchange_sha256 dh_group16_sha512 curve25519_sha256
+#
+tunnel-policy 1
+#
+user-interface maximum-vty 21
+#
+user-interface con 0
+ authentication-mode password
+ set authentication password cipher $1d$CjtcYw-#U'lP:j~@$~g~9;y1JpDtdMUEwuFp~\2,9.cD7JInt7NTP^`~1$
+#
+user-interface vty 0 20
+ authentication-mode aaa
+ idle-timeout 35791 59
+#
+ztp domain-type registration-center domain register.naas.huawei.com port 10020
+#
+http
+#
+ike proposal default
+ encryption-algorithm aes-gcm-256 aes-gcm-192 aes-gcm-128
+ dh group14
+ authentication-algorithm sha2-512 sha2-384 sha2-256
+ authentication-method pre-share
+ integrity-algorithm hmac-sha2-256
+ prf hmac-sha2-256
+ike proposal 1
+ encryption-algorithm aes-256 aes-192 aes-128 3des
+ dh group14
+ authentication-algorithm sha2-512 sha2-384 sha2-256 sha1 md5
+ sa duration 28800
+ authentication-method pre-share
+ integrity-algorithm aes-xcbc-96 hmac-sha2-512 hmac-sha2-384 hmac-sha2-256 hmac-sha1-96 hmac-md5-96
+ prf aes-xcbc-128 hmac-sha2-512 hmac-sha2-384 hmac-sha2-256 hmac-sha1 hmac-md5
+#
+ipsec proposal prop_ipsec_1
+ encapsulation-mode auto
+ esp authentication-algorithm sha2-512 sha2-384 sha2-256 sha1 md5
+ esp encryption-algorithm aes-256 aes-192 aes-128 3des
+#
+ike peer HubNiznek
+ pre-shared-key %+%##!!!!!!!!!"!!!!"!!!!*!!!!7LTnVOK_g:T*]L<P5*gQ$_*H(&:}fJi]A^@!!!!!2jp5!!!!!!6!!!!SP_>*qC@lHzLa:Wv(}9;DRU.GUI[C1!!!!!!!!!!%+%#
+ ike-proposal 1
+ dpd type periodic
+ dpd idle-time 150
+ dpd retransmit-interval 30
+#
+ipsec profile prof_ipsec_0
+ ike-peer HubNiznek
+ proposal prop_ipsec_1
+ipsec profile prof_ipsec_1
+ ike-peer HubNiznek
+ proposal prop_ipsec_1
+ipsec profile prof_ipsec_2
+ ike-peer HubNiznek
+ proposal prop_ipsec_1
+ipsec profile prof_ipsec_3
+ ike-peer HubNiznek
+ proposal prop_ipsec_1
+#
+firewall log service log-type syslog
+#
+firewall zone local
+ set priority 100
+#
+firewall zone trust
+ set priority 85
+#
+firewall zone untrust
+ set priority 5
+#
+firewall zone dmz
+ set priority 50
+#
+sa
+#
+security-policy
+#
+nat-policy
+#
+identity-management
+ sso-tsm
+#
+startup checkpoint auto-save disable
+#
+web-manager enable port 443
+web-manager http forward enable
+undo web-manager server-source -i MEth0/0/0
+web-manager ipv4 server-source -a 10.160.172.130 vpn-instance _management_vpn_
+undo web-manager lock-ip
+#
+return
+[rt-HUB-Niznek]
