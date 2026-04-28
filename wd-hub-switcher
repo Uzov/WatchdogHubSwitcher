@@ -1,0 +1,26 @@
+#!/bin/sh /etc/rc.common
+# -*- shell -*-
+# hub-switcher watchdog service via procd
+
+START=95
+STOP=10
+USE_PROCD=1
+
+SCRIPT_PATH="/usr/sbin/wd-hub-switcher.sh"
+
+start_service() {
+    echo "Starting wd-hub-switcher..."
+    procd_open_instance
+    procd_set_param command "$SCRIPT_PATH"
+    procd_set_param respawn 3600 10 5 # restart if fail (threshold timeout retry)
+    procd_close_instance
+}
+
+stop_service() {
+    echo "Stopping wd-hub-switcher..."
+}
+
+restart() {
+    stop
+    start
+}
