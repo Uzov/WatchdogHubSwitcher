@@ -18,7 +18,7 @@
       "operator": "Letai",
       "ipaddr": "10.160.167.10",
       "proto_addr": "10.160.167.1",
-      "nbma_addr": "10.10.11.1",
+      "nbma_addr": "10.10.13.1",
       "tunlink": "wan100"
     },
     "MegaFon": {
@@ -31,7 +31,7 @@
     "data": {
       "server_addr": "10.160.172.5",
       "prefix": "10.160.172.0/26",
-      "tcp_port": "31011"
+      "tcp_port": "20011"
     }
   },
 
@@ -54,7 +54,7 @@
       "operator": "Letai",
       "ipaddr": "10.160.170.10",
       "proto_addr": "10.160.170.1",
-      "nbma_addr": "10.10.11.2",
+      "nbma_addr": "10.10.13.2",
       "tunlink": "wan100"
     },
     "MegaFon": {
@@ -67,7 +67,7 @@
     "data": {
       "server_addr": "10.160.173.5",
       "prefix": "10.160.173.0/26",
-      "tcp_port": "31011"
+      "tcp_port": "20011"
     }
   }
 }

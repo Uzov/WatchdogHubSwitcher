@@ -13,8 +13,8 @@
 # Company:       CENTER
 #
 # Created:       2026-03-26
-# Last Modified: 2026-03-26
-# Version:       1.0
+# Last Modified: 2026-04-30
+# Version:       2.0
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -61,7 +61,7 @@ SWITCHED_AT=$(date '+%Y-%m-%d')	# Date when the switch to the default/preferred 
 # Finite State Machine (FSM) variables and timers
 # -------------------------------------------------
 
-SLIDING_WINDOW_TIMER=250	# Sliding window for score calculation in seconds (approx. 8*TIMER+10)
+SLIDING_WINDOW_TIMER=300	# Sliding window for score calculation in seconds (approx. 8*TIMER+10)
 ESCALATION_THRESHOLD=15		# Health score threshold to trigger escalation
 NETWORK_STABILIZATION_TIMER=120	# Delay after reconfiguring network to allow stabilization in seconds
 
@@ -483,7 +483,7 @@ switch_hub() {
 		sleep 2
 
 		new_ipaddr="$(ubus call network.interface.$INTERFACE status | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
-		new_tunlink="$(uci get network.mgre1.tunlink)"
+		new_tunlink="$(uci get network.$INTERFACE.tunlink)"
 	
 		if [ "$new_ipaddr" = "$ipaddr" ]; then
 			log_debug "DMVPN/NHRP tunnel on interface $INTERFACE ipaddr reconfigured: $old_ipaddr -> $new_ipaddr"
@@ -527,16 +527,16 @@ escalate() {
             		;;
 		SWITCHING)
 			eval "has_locality1=\$CACHE_${LOCALITY1}_${PROVIDER_SAFE}_operator"
-                        has_locality1=${has_locality1:-"has't_locality1"}
-                        eval "has_locality2=\$CACHE_${LOCALITY2}_${PROVIDER_SAFE}_operator"
-                        has_locality2=${has_locality2:-"has't_locality2"}
+			has_locality1=${has_locality1:-"has't_locality1"}
+			eval "has_locality2=\$CACHE_${LOCALITY2}_${PROVIDER_SAFE}_operator"
+			has_locality2=${has_locality2:-"has't_locality2"}
 
-                        if [ "$has_locality1" = "$has_locality2" ]; then
-                                REGION=$([ "$REGION" = "$LOCALITY1" ] && echo "$LOCALITY2" || echo "$LOCALITY1") # Switch current region first!
-                                log_debug "Current state is $state, switching to $REGION DMVPN/NHRP hub"
-                                switch_hub "$REGION"
-                        else
-                                log_debug "Provider $PROVIDER missing in one of localities in $HUBSFILE, DMVPN/NHRP hub switch skipped!"
+			if [ "$has_locality1" = "$has_locality2" ]; then
+				REGION=$([ "$REGION" = "$LOCALITY1" ] && echo "$LOCALITY2" || echo "$LOCALITY1") # Switch current region first!
+				log_debug "Current state is $state, switching to $REGION DMVPN/NHRP hub"
+				switch_hub "$REGION"
+			else
+				log_debug "Provider $PROVIDER missing in one of localities in $HUBSFILE, DMVPN/NHRP hub switch skipped!"
 			fi
 			
 			log_debug "$CYCLE SWITCHING cycles remained before reboot!"
@@ -586,7 +586,7 @@ run_checks() {
 
 	# Control-plane checks again
 
-		check_bgp_prefix_flap "$REGION"
+	check_bgp_prefix_flap "$REGION"
 }
 
 # -----------------------------
