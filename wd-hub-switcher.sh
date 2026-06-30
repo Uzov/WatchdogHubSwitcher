@@ -33,12 +33,21 @@
 INFO=1
 DEBUG=1
 
-LOOP_TIMER=30			# Main loop delay timer in seconds
+LOOP_TIMER=60			# Main loop delay timer in seconds
 MAX_CYCLES_TO_REBOOT=10		# Max number of SWITCHING cycles before reboot
 CYCLE=$MAX_CYCLES_TO_REBOOT	# Start and then remain "SWITCHING" cycles before reboot (can change during execution)
 SCORE_0_COUNTER=0		# Counter for consecutive events with health score=0
 
-LOGFILE="/var/log/wd-hub-switcher.log"	# Path to main log file
+LOGDIR="/overlay/log"
+
+mkdir -p "$LOGDIR" >/dev/null 2>&1
+
+if [ ! -d "$LOGDIR" ]; then
+    logger -t wd-hub-switcher "WARNING: Cannot create log directory $LOGDIR"
+    LOGDIR="/var/log"
+fi
+
+LOGFILE="$LOGDIR/wd-hub-switcher.log"	# Path to main log file
 MAX_BACKUPS=2				# Maximum number of rotated log backups to keep
 ROTATED_AT=$(date '+%Y-%m-%d')		# Date when logs were last rotated
 
@@ -46,14 +55,14 @@ HUBSFILE="/etc/hubs.json"	# Main configuration file
 
 INTERFACE="mgre1"	# DMVPN/NHRP tunnel interface name
 
-PROVIDER="Beeline"		# Default provider name (ex. 'MegaFon', 'Letai', 'MTS RUS', 'Beeline', 'Tele2', 'Yota'; use only these names in hubs.json file!) or 'Auto' (must be set!)
+PROVIDER="Letai"		# Default provider name (ex. 'MegaFon', 'Letai', 'MTS RUS', 'Beeline', 'Tele2', 'Yota'; use only these names in hubs.json file!) or 'Auto' (must be set!)
 SET_PROVIDER_AUTO=1		# Auto-detect provider (1=yes, 0=use default provider name)  
 WAIT_FOR_MOBILE_TIMER=120	# Max time to wait for mobile interface to come up in seconds
 
 LOCALITY1="Niznekamsk"	# Main DMVPN/NHRP hub HUAWEI AR6710-L26T2X4 location
 LOCALITY2="Kazan"	# Backup DMVPN/NHRP hub HUAWEI AR6710-L26T2X4 location
 
-DEFAULT_REGION=$LOCALITY1	# Default/preferred DMVPN/NHRP hub location
+DEFAULT_REGION=$LOCALITY2	# Default/preferred DMVPN/NHRP hub location
 REGION=$DEFAULT_REGION		# Start and then current DMVPN/NHRP hub locality (can change during execution)
 SWITCHED_AT=$(date '+%Y-%m-%d')	# Date when the switch to the default/preferred DMVPN/NHRP hub occurred			
 
@@ -234,10 +243,10 @@ log_rotate() {
 
 	dir=$(dirname "$logfile")
 	timestamp=$(date '+%Y-%m-%d_%H-%M')
-	tar -czf "$dir/$(basename "$logfile")_$timestamp.tar.gz" "$logfile"
+	
+	# Archive and clear the current log if no errors occured
+        tar -czf "$dir/$(basename "$logfile")_$timestamp.tar.gz" "$logfile" && : > "$logfile"
 
-	# Clear the current log
-	: > "$logfile"
 
 	# Remove oldest archives if exceeding max_backups
 	count=$(ls "$dir"/$(basename "$logfile")_*.tar.gz 2>/dev/null | wc -l)
@@ -574,14 +583,14 @@ run_checks() {
 	if check_ping "$REGION"; then
 		log_debug "Ping to host $(eval "echo \$CACHE_${REGION}_${PROVIDER_SAFE}_proto_addr") successful"
 	else
-		add_event 3
-		log_info "Ping to host $(eval "echo \$CACHE_${REGION}_${PROVIDER_SAFE}_proto_addr") failed, add_event 3"
+		add_event 4
+		log_info "Ping to host $(eval "echo \$CACHE_${REGION}_${PROVIDER_SAFE}_proto_addr") failed, add_event 4"
 	fi
 	if check_tcp "$REGION"; then
 		log_debug "TCP check to server $(eval "echo \$CACHE_${REGION}_server_addr") successful"
 	else
-		add_event 2
-		log_info "TCP check to server $(eval "echo \$CACHE_${REGION}_server_addr") failed, add_event 2"
+		add_event 3
+		log_info "TCP check to server $(eval "echo \$CACHE_${REGION}_server_addr") failed, add_event 3"
 	fi
 
 	# Control-plane checks again
@@ -604,7 +613,10 @@ PROVIDER_SAFE=$(normalize "$PROVIDER")
 [ -f "$STATE_FILE" ] && echo "OK" > "$STATE_FILE" # Reset escalation state file
 [ -f "$EVENT_LOG" ] && : > "$EVENT_LOG" # Reset event log file
 
-wait_mobile_is_up $WAIT_FOR_MOBILE_TIMER
+while ! wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER"; do
+	sleep 30
+done
+
 log_debug "Current provider is $PROVIDER"
 
 # -----------------------------

@@ -16,10 +16,10 @@
     },
     "Letai": {
       "operator": "Letai",
-      "ipaddr": "10.160.167.10",
+      "ipaddr": "10.160.167.66",
       "proto_addr": "10.160.167.1",
-      "nbma_addr": "10.10.13.1",
-      "tunlink": "wan100"
+      "nbma_addr": "10.10.11.86",
+      "tunlink": "sim1"
     },
     "MegaFon": {
       "operator": "MegaFon",
@@ -52,10 +52,10 @@
     },
     "Letai": {
       "operator": "Letai",
-      "ipaddr": "10.160.170.10",
+      "ipaddr": "10.160.170.66",
       "proto_addr": "10.160.170.1",
-      "nbma_addr": "10.10.13.2",
-      "tunlink": "wan100"
+      "nbma_addr": "10.10.11.87",
+      "tunlink": "sim1"
     },
     "MegaFon": {
       "operator": "MegaFon",
