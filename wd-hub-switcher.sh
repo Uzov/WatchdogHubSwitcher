@@ -241,21 +241,21 @@ log_rotate() {
 
 	[ -f "$logfile" ] || return 0  # Exit if log file does not exist
 
-	dir=$(dirname "$logfile")
 	timestamp=$(date '+%Y-%m-%d_%H-%M')
 	
 	# Archive and clear the current log if no errors occured
-        tar -czf "$dir/$(basename "$logfile")_$timestamp.tar.gz" "$logfile" && : > "$logfile"
+        tar -czf "$LOGDIR/$(basename "$logfile")_$timestamp.tar.gz" "$logfile" && : > "$logfile"
 
 
 	# Remove oldest archives if exceeding max_backups
-	count=$(ls "$dir"/$(basename "$logfile")_*.tar.gz 2>/dev/null | wc -l)
+	count=$(ls "$LOGDIR"/$(basename "$logfile")_*.tar.gz 2>/dev/null | wc -l)
 	while [ "$count" -gt "$max_backups" ]; do
 		oldest=$(ls -1 "$dir"/$(basename "$logfile")_*.tar.gz | head -n1)
 		rm -f "$oldest"
 		count=$((count - 1))
 	done
 }
+
 
 # -------------------------
 # Sliding window functions
@@ -637,6 +637,19 @@ while true; do
 			sleep $LOOP_TIMER
 			continue
 		fi
+
+		eval "tunlink=\$CACHE_${REGION}_${PROVIDER_SAFE}_tunlink"
+
+		case "$tunlink" in
+    			sim1|sim2)
+				if ! wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER" >/dev/null 2>&1; then
+					log_info "Mobile interface is not ready, skipping iteration"
+					sleep $LOOP_TIMER
+					continue
+		
+				fi
+				;;
+		esac
 
 		run_checks
 

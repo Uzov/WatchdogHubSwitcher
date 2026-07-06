@@ -54,8 +54,8 @@
       "operator": "Letai",
       "ipaddr": "10.160.170.66",
       "proto_addr": "10.160.170.1",
-      "nbma_addr": "10.10.11.87",
-      "tunlink": "sim1"
+      "nbma_addr": "10.10.14.6",
+      "tunlink": "wan88"
     },
     "MegaFon": {
       "operator": "MegaFon",
