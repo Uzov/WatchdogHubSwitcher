@@ -14,7 +14,7 @@
 #
 # Created:       2026-03-26
 # Last Modified: 2026-04-30
-# Version:       2.0
+# Version:       2.2
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -490,6 +490,10 @@ switch_hub() {
 
 		ubus call network reload >/dev/null 2>&1
 		sleep 2
+		ubus call network.interface.$INTERFACE down
+		sleep 1
+		ubus call network.interface.$INTERFACE up
+		sleep 1
 
 		new_ipaddr="$(ubus call network.interface.$INTERFACE status | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
 		new_tunlink="$(uci get network.$INTERFACE.tunlink)"
@@ -531,7 +535,7 @@ escalate() {
 			echo "RECOVERY" > "$STATE_FILE"
 			;;
 		RECOVERY)
-			reset_bgp_neighbor"$neighbor"			
+			reset_bgp_neighbor "$neighbor"			
 			echo "SWITCHING" > "$STATE_FILE"
             		;;
 		SWITCHING)
@@ -613,9 +617,7 @@ PROVIDER_SAFE=$(normalize "$PROVIDER")
 [ -f "$STATE_FILE" ] && echo "OK" > "$STATE_FILE" # Reset escalation state file
 [ -f "$EVENT_LOG" ] && : > "$EVENT_LOG" # Reset event log file
 
-while ! wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER"; do
-	sleep 30
-done
+wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER"
 
 log_debug "Current provider is $PROVIDER"
 
@@ -638,16 +640,21 @@ while true; do
 			continue
 		fi
 
-		eval "tunlink=\$CACHE_${REGION}_${PROVIDER_SAFE}_tunlink"
-
-		case "$tunlink" in
-    			sim1|sim2)
-				if ! wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER" >/dev/null 2>&1; then
-					log_info "Mobile interface is not ready, skipping iteration"
-					sleep $LOOP_TIMER
-					continue
+		eval "tunlink1=\$CACHE_${LOCALITY1}_${PROVIDER_SAFE}_tunlink"
+		eval "tunlink2=\$CACHE_${LOCALITY2}_${PROVIDER_SAFE}_tunlink"
 		
-				fi
+		case "$tunlink1" in
+    			sim1|sim2)
+				case "$tunlink2" in
+                        		sim1|sim2)
+						if ! wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER" >/dev/null 2>&1; then
+							log_info "Mobile interface is not ready, skipping iteration"
+							sleep $LOOP_TIMER
+							continue
+		
+						fi
+						;;
+				esac
 				;;
 		esac
 
