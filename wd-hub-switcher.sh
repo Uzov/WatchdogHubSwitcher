@@ -14,7 +14,7 @@
 #
 # Created:       2026-03-26
 # Last Modified: 2026-04-30
-# Version:       2.2
+# Version:       2.4
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -87,7 +87,7 @@ current_time() { date +%s; }
 
 # Normalize operator name: substitue spaces, "-", russian letters with "_"
 normalize() {
-    echo "$1" | tr -c 'a-zA-Z0-9' '_'
+    echo "$1" | tr -d '\n' | tr -c 'a-zA-Z0-9' '_'
 }
 
 # Validate ip address
@@ -201,12 +201,14 @@ wait_mobile_is_up() {
 					json_select .. 2>/dev/null
 					json_select .. 2>/dev/null
 
-					log_info "Mobile $iface is up: operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
+					log_info "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
 					if [ "${SET_PROVIDER_AUTO:-0}" = "1" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
 						PROVIDER="$operator"
 						PROVIDER_SAFE=$(normalize "$operator")
 						return 0
 					fi
+					PROVIDER_SAFE=$(normalize "$PROVIDER")
+					return 0
 					;;
 			esac
 		done
@@ -237,7 +239,7 @@ log_debug() {
 log_rotate() {
 	local logfile="$1"
 	local max_backups="${2:-7}"
-	local dir timestamp count oldest
+	local timestamp count oldest
 
 	[ -f "$logfile" ] || return 0  # Exit if log file does not exist
 
@@ -250,7 +252,7 @@ log_rotate() {
 	# Remove oldest archives if exceeding max_backups
 	count=$(ls "$LOGDIR"/$(basename "$logfile")_*.tar.gz 2>/dev/null | wc -l)
 	while [ "$count" -gt "$max_backups" ]; do
-		oldest=$(ls -1 "$dir"/$(basename "$logfile")_*.tar.gz | head -n1)
+		oldest=$(ls -1 "$LOGDIR"/$(basename "$logfile")_*.tar.gz | head -n1)
 		rm -f "$oldest"
 		count=$((count - 1))
 	done
