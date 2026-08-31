@@ -13,8 +13,8 @@
 # Company:       CENTER
 #
 # Created:       2026-03-26
-# Last Modified: 2026-08-28
-# Version:       2.4
+# Last Modified: 2026-08-31
+# Version:       2.5
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -32,6 +32,7 @@
 
 INFO=1
 DEBUG=1
+VERSION="2.5"
 
 LOOP_TIMER=60			# Main loop delay timer in seconds
 MAX_CYCLES_TO_REBOOT=10		# Max number of SWITCHING cycles before reboot
@@ -62,7 +63,7 @@ WAIT_FOR_MOBILE_TIMER=120	# Max time to wait for mobile interface to come up in 
 LOCALITY1="Niznekamsk"	# Main DMVPN/NHRP hub HUAWEI AR6710-L26T2X4 location
 LOCALITY2="Kazan"	# Backup DMVPN/NHRP hub HUAWEI AR6710-L26T2X4 location
 
-DEFAULT_REGION=$LOCALITY2	# Default/preferred DMVPN/NHRP hub location
+DEFAULT_REGION=$LOCALITY1	# Default/preferred DMVPN/NHRP hub location
 REGION=$DEFAULT_REGION		# Start and then current DMVPN/NHRP hub locality (can change during execution)
 SWITCHED_AT=$(date '+%Y-%m-%d')	# Date when the switch to the default/preferred DMVPN/NHRP hub occurred			
 
@@ -82,17 +83,60 @@ STATE_FILE="/tmp/wd_state_file"      # Current escalation state of the hs-watchd
 # Routines
 # -------------------------
 
+# Check script parameters. If provided, handle them and exit.
+# Otherwise, start the main loop.
+
+check_params() {
+	if [[ $# -eq 0 ]]; then
+		return 0
+	fi
+
+	for param in "$@"; do
+		case "$param" in
+			--version)
+				printf '%s\n' "$VERSION"
+			;;
+
+			--provider)
+				printf '%s\n' "$PROVIDER"
+			;;
+
+			--region)
+				printf '%s\n' "$REGION"
+			;;
+
+			--help)
+				printf 'Usage: %s [OPTION]...\n' "$0"
+				printf '\n'
+				printf 'Options:\n'
+				printf '  --version   Show version\n'
+				printf '  --provider  Show default provider\n'
+				printf '  --region  Show default region\n'
+				printf '  --help      Show this help\n'
+			;;
+
+			*)
+				printf 'Unknown option: %s\n' "$param" >&2
+				printf 'Try "%s --help" for more information.\n' "$0" >&2
+				exit 1
+			;;
+		esac
+	done
+
+	exit 0
+}
+
 # Print current time in UNIX format (in seconds from 1970-01-01)
 current_time() { date +%s; }
 
 # Normalize operator name: substitue spaces, "-", russian letters with "_"
 normalize() {
-    echo "$1" | tr -d '\n' | tr -c 'a-zA-Z0-9' '_'
+	echo "$1" | tr -d '\n' | tr -c 'a-zA-Z0-9' '_'
 }
 
 # Validate ip address
 is_valid_ip() {
-    echo "$1" | grep -Eq '^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$'
+	echo "$1" | grep -Eq '^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$'
 }
 
 # Parse HUBS_JSON, validate IPs, and cache parameters using jshn 
@@ -202,12 +246,13 @@ wait_mobile_is_up() {
 					json_select .. 2>/dev/null
 
 					log_info "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
+
 					if [ "${SET_PROVIDER_AUTO:-0}" = "1" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
 						PROVIDER="$operator"
 						PROVIDER_SAFE=$(normalize "$operator")
 						return 0
 					fi
-					PROVIDER_SAFE=$(normalize "$PROVIDER")
+
 					return 0
 					;;
 			esac
@@ -608,6 +653,8 @@ run_checks() {
 # Init
 # -----------------------------
 
+check_params "$@"
+
 log_info "----------------------------------------------------"
 log_info " "
 log_info "The wd-hub-switcher.sh shell script watchdog started"
@@ -644,6 +691,8 @@ while true; do
 
 		eval "tunlink1=\$CACHE_${LOCALITY1}_${PROVIDER_SAFE}_tunlink"
 		eval "tunlink2=\$CACHE_${LOCALITY2}_${PROVIDER_SAFE}_tunlink"
+
+	# If tunlink1 and tunlink2 are sim1 or sim2, wait until the mobile interface to come up. Otherwise, continue.
 		
 		case "$tunlink1" in
     			sim1|sim2)
