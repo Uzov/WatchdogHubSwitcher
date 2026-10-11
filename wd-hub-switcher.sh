@@ -13,8 +13,8 @@
 # Company:       CENTER
 #
 # Created:       2026-03-26
-# Last Modified: 2026-08-31
-# Version:       2.5K
+# Last Modified: 2026-10-09
+# Version:       3.0
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -32,7 +32,7 @@
 
 INFO=1
 DEBUG=1
-VERSION="2.5K"
+VERSION="3.0K"
 
 LOOP_TIMER=60			# Main loop delay timer in seconds
 MAX_CYCLES_TO_REBOOT=10		# Max number of SWITCHING cycles before reboot
@@ -208,7 +208,8 @@ wait_mobile_is_up() {
 	local start_time=$(date +%s)
 	local ubus_json_output state operator ipaddr mask rssi mode l3_device dots
 
-	while [ $(( $(date +%s) - start_time )) -lt "$timeout" ]; do
+	while [ $(( $(date +%s) - start_time )) -lt "$timeout" ] && { [ -z "$operator" ] || [ "$operator" = "N/A" ]; }; do
+		
 		for iface in sim1 sim2; do
 
 			ubus_json_output=$(ubus call network.interface.$iface status 2>/dev/null)
@@ -248,15 +249,20 @@ wait_mobile_is_up() {
 					json_select .. 2>/dev/null
 					json_select .. 2>/dev/null
 
-					log_info "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
-
-					if [ "${SET_PROVIDER_AUTO:-0}" = "1" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
+					if [ "${SET_PROVIDER_AUTO}" = "1" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
+						log_info "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
 						PROVIDER="$operator"
 						PROVIDER_SAFE=$(normalize "$operator")
 						return 0
 					fi
+					
+					if [ "${SET_PROVIDER_AUTO}" = "0" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
+                                                log_info "Mobile $iface is up: operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
+                                                PROVIDER="$operator"
+                                                PROVIDER_SAFE=$(normalize "$operator")
+                                                return 0
+                                        fi
 
-					return 0
 					;;
 			esac
 		done
@@ -551,9 +557,9 @@ switch_hub() {
                         		log_debug "Interface $tunlink apn changed: $old_apn -> $apn"
 
                         		ubus call network.interface.$tunlink down
-                        		sleep 1
+                        		sleep 3
                         		ubus call network.interface.$tunlink up
-                       			 sleep 1
+                       			sleep 3
 
                         		wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER"
                 		fi
