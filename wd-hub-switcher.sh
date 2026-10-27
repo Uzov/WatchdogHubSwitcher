@@ -14,7 +14,7 @@
 #
 # Created:       2026-03-26
 # Last Modified: 2026-08-31
-# Version:       2.5
+# Version:       2.5K
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -32,7 +32,7 @@
 
 INFO=1
 DEBUG=1
-VERSION="2.5"
+VERSION="2.5K"
 
 LOOP_TIMER=60			# Main loop delay timer in seconds
 MAX_CYCLES_TO_REBOOT=10		# Max number of SWITCHING cycles before reboot
@@ -56,14 +56,15 @@ HUBSFILE="/etc/hubs.json"	# Main configuration file
 
 INTERFACE="mgre1"	# DMVPN/NHRP tunnel interface name
 
-PROVIDER="Letai"		# Default provider name (ex. 'MegaFon', 'Letai', 'MTS RUS', 'Beeline', 'Tele2', 'Yota'; use only these names in hubs.json file!) or 'Auto' (must be set!)
+PROVIDER="MegaFon"		# Default provider name (ex. 'MegaFon', 'Letai', 'MTS RUS', 'Beeline', 'Tele2', 'Yota', 'ROSTELECOM'; use only these names in hubs.json file!) or 'Auto' (must be set!)
 SET_PROVIDER_AUTO=1		# Auto-detect provider (1=yes, 0=use default provider name)  
 WAIT_FOR_MOBILE_TIMER=120	# Max time to wait for mobile interface to come up in seconds
+DEFAULT_APN="internet"
 
 LOCALITY1="Niznekamsk"	# Main DMVPN/NHRP hub HUAWEI AR6710-L26T2X4 location
 LOCALITY2="Kazan"	# Backup DMVPN/NHRP hub HUAWEI AR6710-L26T2X4 location
 
-DEFAULT_REGION=$LOCALITY1	# Default/preferred DMVPN/NHRP hub location
+DEFAULT_REGION=$LOCALITY2	# Default/preferred DMVPN/NHRP hub location
 REGION=$DEFAULT_REGION		# Start and then current DMVPN/NHRP hub locality (can change during execution)
 SWITCHED_AT=$(date '+%Y-%m-%d')	# Date when the switch to the default/preferred DMVPN/NHRP hub occurred			
 
@@ -156,6 +157,7 @@ load_cache() {
 					json_get_var proto_addr proto_addr
 					json_get_var nbma_addr nbma_addr
 					json_get_var tunlink tunlink
+					json_get_var apn apn
 
 					# Validate IPs 
 					for addr in "$ipaddr" "$proto_addr" "$nbma_addr"; do 
@@ -173,6 +175,7 @@ load_cache() {
 					eval "CACHE_${locality}_${provider_safe}_proto_addr=\"$proto_addr\""
 					eval "CACHE_${locality}_${provider_safe}_nbma_addr=\"$nbma_addr\""
 					eval "CACHE_${locality}_${provider_safe}_tunlink=\"$tunlink\""
+					eval "CACHE_${locality}_${provider_safe}_apn=\"$apn\""
 				else
 					json_get_var server_addr server_addr
 					
@@ -498,12 +501,18 @@ EOF
 # Switch to another hub
 switch_hub() {	
 	local locality="$1"
-	local proto_addr nbma_addr tunlink old_tunlink new_tunlink ipaddr old_ipaddr new_ipaddr
+	local proto_addr nbma_addr tunlink old_tunlink new_tunlink ipaddr old_ipaddr new_ipaddr old_apn apn new_apn
 
 	old_ipaddr=$(uci get network.$INTERFACE.ipaddr 2>/dev/null)
 	old_tunlink=$(uci get network.$INTERFACE.tunlink 2>/dev/null)
+	
+	if [ "$old_tunlink" = "sim1" ] || [ "$old_tunlink" = "sim2" ]; then
+		old_apn=$(uci get network.$old_tunlink.apn 2>/dev/null)
+	else
+		old_apn="old_apn_is_null"
+	fi
 
-	eval "ipaddr=\$CACHE_${locality}_${PROVIDER_SAFE}_ipaddr"	
+	eval "ipaddr=\$CACHE_${locality}_${PROVIDER_SAFE}_ipaddr"
 	[ -z "$ipaddr" ] && {
 		log_info "ipaddr for $locality / $PROVIDER missing, skipping hub switch"
 		return 1
@@ -526,28 +535,62 @@ switch_hub() {
 			log_info "tunlink for $locality / $PROVIDER missing, skipping hub switch"
 			return 1
 		}
+		eval "apn=\$CACHE_${locality}_${PROVIDER_SAFE}_apn"
+                if [ -z "$apn" ]; then
+                	apn="${DEFAULT_APN:-internet}"
+                	log_info "apn for $locality / $PROVIDER_SAFE is not set, using default: $apn"
+                fi
+
+		case "$tunlink" in    
+			sim1|sim2)
+				if [ "$old_apn" != "$apn" ]; then
+                        		uci set network.${tunlink}.apn="$apn" >/dev/null 2>&1
+
+                        		uci commit network.${tunlink} >/dev/null 2>&1
+
+                        		log_debug "Interface $tunlink apn changed: $old_apn -> $apn"
+
+                        		ubus call network.interface.$tunlink down
+                        		sleep 1
+                        		ubus call network.interface.$tunlink up
+                       			 sleep 1
+
+                        		wait_mobile_is_up "$WAIT_FOR_MOBILE_TIMER"
+                		fi
+			;;
+		esac
 
 		uci set network.${INTERFACE}.ipaddr="$ipaddr" >/dev/null 2>&1
 		uci set network.${INTERFACE}.proto_addr="$proto_addr" >/dev/null 2>&1
 		uci set network.${INTERFACE}.nbma_addr="$nbma_addr" >/dev/null 2>&1
 		uci set network.${INTERFACE}.tunlink="$tunlink" >/dev/null 2>&1
+
 		uci commit network.${INTERFACE} >/dev/null 2>&1
+		
 		log_debug "Interface $INTERFACE ipaddr changed: $old_ipaddr -> $ipaddr"
-		log_debug "Interface $INTERFACE tunlink changed: $old_tunlink -> $tunlink"		
+		log_debug "Interface $INTERFACE tunlink changed: $old_tunlink -> $tunlink"
 
 		ubus call network reload >/dev/null 2>&1
 		sleep 2
+
 		ubus call network.interface.$INTERFACE down
 		sleep 1
 		ubus call network.interface.$INTERFACE up
 		sleep 1
-
+		
 		new_ipaddr="$(ubus call network.interface.$INTERFACE status | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
 		new_tunlink="$(uci get network.$INTERFACE.tunlink)"
+
+		if [ "$new_tunlink" = "sim1" ] || [ "$new_tunlink" = "sim2" ]; then
+			new_apn="$(uci get network.$new_tunlink.apn)"
+		else
+			new_apn="new_apn_is_null"
+		fi
 	
 		if [ "$new_ipaddr" = "$ipaddr" ]; then
 			log_debug "DMVPN/NHRP tunnel on interface $INTERFACE ipaddr reconfigured: $old_ipaddr -> $new_ipaddr"
 			log_debug "DMVPN/NHRP tunnel on interface $INTERFACE ipaddr reconfigured: $old_tunlink -> $new_tunlink"
+			log_debug "DMVPN/NHRP tunnel on interface $tunlink apn reconfigured: $old_apn -> $new_apn"
 		fi
 	
 		log_debug "Waiting $NETWORK_STABILIZATION_TIMER seconds for network to stabilize..."

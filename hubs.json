@@ -1,32 +1,36 @@
 {
   "Niznekamsk": {
-    "Beeline": {
-      "operator": "Beeline",
+    "ROSTELECOM": {
+      "operator": "ROSTELECOM",
       "ipaddr": "10.160.166.10",
       "proto_addr": "10.160.166.1",
       "nbma_addr": "10.10.12.1",
-      "tunlink": "wan100"
+      "tunlink": "sim1",
+      "apn": "vpn.rtk.ru"
     },
      "MTS_RUS": {
       "operator": "MTS RUS",
       "ipaddr": "10.160.200.10",
       "proto_addr": "10.160.200.1",
       "nbma_addr": "217.198.0.82",
-      "tunlink": "sim1"
+      "tunlink": "sim1",
+      "apn": "internet.mts.ru"
     },
     "Letai": {
       "operator": "Letai",
       "ipaddr": "10.160.167.66",
       "proto_addr": "10.160.167.1",
       "nbma_addr": "10.10.11.86",
-      "tunlink": "sim1"
+      "tunlink": "sim1",
+      "apn": "lso.letai"
     },
     "MegaFon": {
       "operator": "MegaFon",
-      "ipaddr": "10.160.168.10",
+      "ipaddr": "10.160.168.150",
       "proto_addr": "10.160.168.1",
-      "nbma_addr": "10.10.10.1",
-      "tunlink": "wan100"
+      "nbma_addr": "217.198.0.82",
+      "tunlink": "sim1",
+      "apn": "internet.megafon.ru"
     },
     "data": {
       "server_addr": "10.160.172.5",
@@ -36,33 +40,37 @@
   },
 
   "Kazan": {
-    "Beeline": {
-      "operator": "Beeline",
+    "ROSTELECOM": {
+      "operator": "ROSTELECOM",
       "ipaddr": "10.160.169.10",
       "proto_addr": "10.160.169.1",
       "nbma_addr": "10.10.12.2",
-      "tunlink": "wan100"
+      "tunlink": "sim1",
+      "apn": "vpn.rtk.ru"
     },
     "MTS_RUS": {
       "operator": "MTS RUS",
       "ipaddr": "10.160.169.10",
       "proto_addr": "10.160.169.1",
       "nbma_addr": "10.10.12.2",
-      "tunlink": "wan100"
+      "tunlink": "sim1",
+      "apn": "internet.mts.ru"
     },
     "Letai": {
       "operator": "Letai",
       "ipaddr": "10.160.170.66",
       "proto_addr": "10.160.170.1",
       "nbma_addr": "10.10.14.6",
-      "tunlink": "wan88"
+      "tunlink": "sim1",
+      "apn": "lso.letai"
     },
     "MegaFon": {
       "operator": "MegaFon",
-      "ipaddr": "10.160.171.10",
+      "ipaddr": "10.160.171.150",
       "proto_addr": "10.160.171.1",
-      "nbma_addr": "10.10.10.2",
-      "tunlink": "wan100"
+      "nbma_addr": "10.10.12.1",
+      "tunlink": "sim1",
+      "apn": "lso.megafon.volga"
     },
     "data": {
       "server_addr": "10.160.173.5",
