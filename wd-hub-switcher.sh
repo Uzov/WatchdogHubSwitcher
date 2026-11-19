@@ -300,25 +300,27 @@ wait_mobile_is_up() {
 		# Interface is up: operator detection is optional
 		if [ "$mobile_up" = true ]; then
 
-			if [ "$SET_PROVIDER_AUTO" = "1" ] && [ -n "$detected_operator" ]; then
+			if [ "$SET_PROVIDER_AUTO" != "1" ]; then
 
-    				if operator_exists "$detected_operator"; then
+    				log_info "Mobile interface is up. Auto provider detection disabled, using: $PROVIDER"
 
-        				PROVIDER="$detected_operator"
-        				PROVIDER_SAFE=$(normalize "$PROVIDER")
+			elif [ -z "$detected_operator" ]; then
 
-        				log_info "Auto detected operator '$PROVIDER' found in $HUBSFILE"
+    				log_info "Mobile interface is up, operator unavailable. Using configured provider: $PROVIDER"
 
-    				else
+			elif operator_exists "$detected_operator"; then
 
-        				log_info "WARNING: Detected operator '$detected_operator' not found in $HUBSFILE"
-        				log_info "Using configured provider: $PROVIDER"
+    				PROVIDER="$detected_operator"
+    				PROVIDER_SAFE=$(normalize "$PROVIDER")
 
-    				fi
+    				log_info "Auto detected operator '$PROVIDER' found in $HUBSFILE"
 
 			else
-    				log_info "Mobile interface is up, operator unavailable. Using configured provider: $PROVIDER"
-			fi
+
+				log_info "WARNING: Detected operator '$detected_operator' not found in $HUBSFILE"
+				log_info "Using configured provider: $PROVIDER"
+
+			fi			
 			
 			return 0
 		fi
