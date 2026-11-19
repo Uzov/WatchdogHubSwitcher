@@ -144,6 +144,8 @@ is_valid_ip() {
 load_cache() {
 	json_load "$HUBS_JSON"
 	json_get_keys localities
+	
+#	OPERATORS=""
 
 	for locality in $localities; do
 		json_select "$locality" 2>/dev/null
@@ -151,8 +153,12 @@ load_cache() {
 			for provider in $providers; do
 				json_select "$provider"
 				if [ "$provider" != "data" ]; then
+					
 					json_get_var operator operator
+#					OPERATORS="${OPERATORS}${operator}|"
+					OPERATORS="Letai|MegaFon|ROSTELECOM"
 					operator_safe=$(normalize "$operator")
+					
 					json_get_var ipaddr ipaddr
 					json_get_var proto_addr proto_addr
 					json_get_var nbma_addr nbma_addr
@@ -182,7 +188,7 @@ load_cache() {
 					if ! is_valid_ip "$server_addr" >/dev/null 2>&1; then
 						log_debug "Invalid IP in cache [$locality/data]: $server_addr"
 						json_select .. 2>/dev/null
-					return 1
+						return 1
 					fi
 
 					json_get_var prefix prefix
@@ -206,7 +212,7 @@ wait_mobile_is_up() {
 	local timeout=$1
 	local i=1
 	local start_time=$(date +%s)
-	local ubus_json_output state operator ipaddr mask rssi mode l3_device dots
+	local ubus_json_output state operator="N/A" operator_detected ipaddr mask rssi mode l3_device dots found=false
 
 	while [ $(( $(date +%s) - start_time )) -lt "$timeout" ] && { [ -z "$operator" ] || [ "$operator" = "N/A" ]; }; do
 		
@@ -238,11 +244,29 @@ wait_mobile_is_up() {
 					json_select data 2>/dev/null
 					json_select info 2>/dev/null
 
+#					json_get_var operator_detected operator
 					json_get_var operator operator
 					json_get_var rssi rssi
 					json_get_var mode mode
 
-					operator=${operator:-"N/A"}
+					# Check whether the auto-detected operator exists in hubs.json
+#					case "$OPERATORS" in
+#    						*"|${operator_detected}|"*)
+#        						found=true
+#        						;;
+#    						*)
+#        						found=false
+#        						;;
+#					esac					
+#
+#					if [ "$found" = trueÐ ]; then
+#						operator=$operator_detected
+#						log_debug "Auto detected $operator_detected found in $HUBSFILE"
+#					else
+#						operator="N/A"	
+#					fi	
+
+					operator=${operator:-"N/A"}					
 					rssi=${rssi:-"N/A"}
 					mode=${mode:-"N/A"}
 
@@ -250,18 +274,19 @@ wait_mobile_is_up() {
 					json_select .. 2>/dev/null
 
 					if [ "${SET_PROVIDER_AUTO}" = "1" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
-						log_info "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
+						log_debug "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
 						PROVIDER="$operator"
 						PROVIDER_SAFE=$(normalize "$operator")
 						return 0
 					fi
+
 					
 					if [ "${SET_PROVIDER_AUTO}" = "0" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
-                                                log_info "Mobile $iface is up: operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
-                                                PROVIDER="$operator"
-                                                PROVIDER_SAFE=$(normalize "$operator")
+                                                log_debug "Mobile $iface is up: configured operator=$PROVIDER, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
                                                 return 0
                                         fi
+
+#					log_info "Mobile $iface is up: finally selected operator=$PROVIDER, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
 
 					;;
 			esac
