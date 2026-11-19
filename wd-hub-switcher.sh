@@ -13,8 +13,8 @@
 # Company:       CENTER
 #
 # Created:       2026-03-26
-# Last Modified: 2026-10-09
-# Version:       3.0
+# Last Modified: 2026-11-19
+# Version:       3.1
 #
 # Notes:
 #   - Requires ubus, jsonfilter, vtysh, nc
@@ -32,7 +32,7 @@
 
 INFO=1
 DEBUG=1
-VERSION="3.0K"
+VERSION="3.1K"
 
 LOOP_TIMER=60			# Main loop delay timer in seconds
 MAX_CYCLES_TO_REBOOT=10		# Max number of SWITCHING cycles before reboot
@@ -56,7 +56,7 @@ HUBSFILE="/etc/hubs.json"	# Main configuration file
 
 INTERFACE="mgre1"	# DMVPN/NHRP tunnel interface name
 
-PROVIDER="MegaFon"		# Default provider name (ex. 'MegaFon', 'Letai', 'MTS RUS', 'Beeline', 'Tele2', 'Yota', 'ROSTELECOM'; use only these names in hubs.json file!) or 'Auto' (must be set!)
+PROVIDER="Letai"		# Default provider name (ex. 'MegaFon', 'Letai', 'MTS RUS', 'Beeline', 'Tele2', 'Yota', 'ROSTELECOM'; use only these names in hubs.json file!) or 'Auto' (must be set!)
 SET_PROVIDER_AUTO=1		# Auto-detect provider (1=yes, 0=use default provider name)  
 WAIT_FOR_MOBILE_TIMER=120	# Max time to wait for mobile interface to come up in seconds
 DEFAULT_APN="internet"
@@ -140,12 +140,25 @@ is_valid_ip() {
 	echo "$1" | grep -Eq '^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$'
 }
 
+# Check whether detected operator exists in hubs.json
+operator_exists() {
+    local operator="$1"
+
+    case "$OPERATORS" in
+        *"|$operator|"*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # Parse HUBS_JSON, validate IPs, and cache parameters using jshn 
 load_cache() {
 	json_load "$HUBS_JSON"
 	json_get_keys localities
-	
-#	OPERATORS=""
+	OPERATORS="|"
 
 	for locality in $localities; do
 		json_select "$locality" 2>/dev/null
@@ -155,8 +168,18 @@ load_cache() {
 				if [ "$provider" != "data" ]; then
 					
 					json_get_var operator operator
-#					OPERATORS="${OPERATORS}${operator}|"
-					OPERATORS="Letai|MegaFon|ROSTELECOM"
+					
+					# Build unique list of operators from hubs.json
+					if [ -n "$operator" ]; then
+    						case "$OPERATORS" in
+        						*"|$operator|"*)
+            							;;
+        						*)
+            							OPERATORS="${OPERATORS}${operator}|"
+            							;;
+    						esac
+					fi
+					
 					operator_safe=$(normalize "$operator")
 					
 					json_get_var ipaddr ipaddr
@@ -209,13 +232,21 @@ load_cache() {
 
 # Wait for one of mobile interface is up and get provider name
 wait_mobile_is_up() {
-	local timeout=$1
-	local i=1
-	local start_time=$(date +%s)
-	local ubus_json_output state operator="N/A" operator_detected ipaddr mask rssi mode l3_device dots found=false
+	local timeout="$1"
+	local start_time
+	local ubus_json_output
+	local state operator_detected
+	local ipaddr mask rssi mode l3_device
+	local mobile_up=false
+	local detected_operator=""
 
-	while [ $(( $(date +%s) - start_time )) -lt "$timeout" ] && { [ -z "$operator" ] || [ "$operator" = "N/A" ]; }; do
-		
+	start_time=$(date +%s)
+
+	while [ $(( $(date +%s) - start_time )) -lt "$timeout" ]; do
+
+		mobile_up=false
+		detected_operator=""
+
 		for iface in sim1 sim2; do
 
 			ubus_json_output=$(ubus call network.interface.$iface status 2>/dev/null)
@@ -224,13 +255,16 @@ wait_mobile_is_up() {
 			json_load "$ubus_json_output"
 
 			json_get_var state up
+
 			case "$state" in
 				1|true)
+					mobile_up=true
+
 					# l3_device
 					json_get_var l3_device l3_device
 					l3_device=${l3_device:-"N/A"}
 
-					# ipv4
+					# IPv4 address
 					json_select 'ipv4-address' 2>/dev/null
 					json_select 1 2>/dev/null
 					json_get_var ipaddr address
@@ -240,64 +274,61 @@ wait_mobile_is_up() {
 					json_select .. 2>/dev/null
 					json_select .. 2>/dev/null
 
-					# data/info
+					# Mobile information
 					json_select data 2>/dev/null
 					json_select info 2>/dev/null
 
-#					json_get_var operator_detected operator
-					json_get_var operator operator
+					json_get_var operator_detected operator
 					json_get_var rssi rssi
 					json_get_var mode mode
 
-					# Check whether the auto-detected operator exists in hubs.json
-#					case "$OPERATORS" in
-#    						*"|${operator_detected}|"*)
-#        						found=true
-#        						;;
-#    						*)
-#        						found=false
-#        						;;
-#					esac					
-#
-#					if [ "$found" = trueÐ ]; then
-#						operator=$operator_detected
-#						log_debug "Auto detected $operator_detected found in $HUBSFILE"
-#					else
-#						operator="N/A"	
-#					fi	
-
-					operator=${operator:-"N/A"}					
 					rssi=${rssi:-"N/A"}
 					mode=${mode:-"N/A"}
 
 					json_select .. 2>/dev/null
 					json_select .. 2>/dev/null
 
-					if [ "${SET_PROVIDER_AUTO}" = "1" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
-						log_debug "Mobile $iface is up: auto detected operator=$operator, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
-						PROVIDER="$operator"
-						PROVIDER_SAFE=$(normalize "$operator")
-						return 0
+					if [ -n "$operator_detected" ]; then
+						detected_operator="$operator_detected"
 					fi
 
-					
-					if [ "${SET_PROVIDER_AUTO}" = "0" ] && [ -n "$operator" ] && [ "$operator" != "N/A" ]; then
-                                                log_debug "Mobile $iface is up: configured operator=$PROVIDER, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
-                                                return 0
-                                        fi
-
-#					log_info "Mobile $iface is up: finally selected operator=$PROVIDER, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
-
+					log_debug "Mobile $iface is up: operator=${operator_detected:-unknown}, mode=$mode, rssi=${rssi}dB, ip=${ipaddr}/${mask}, dev=$l3_device"
 					;;
 			esac
 		done
-		dots=$(printf '%*s' "$i" '' | tr ' ' '.')
-		log_debug "Waiting for mobile interface${dots}elapsed: $(( $(date +%s) - start_time )) sec"
-		i=$((i + 1))
+
+		# Interface is up: operator detection is optional
+		if [ "$mobile_up" = true ]; then
+
+			if [ "$SET_PROVIDER_AUTO" = "1" ] && [ -n "$detected_operator" ]; then
+
+    				if operator_exists "$detected_operator"; then
+
+        				PROVIDER="$detected_operator"
+        				PROVIDER_SAFE=$(normalize "$PROVIDER")
+
+        				log_info "Auto detected operator '$PROVIDER' found in $HUBSFILE"
+
+    				else
+
+        				log_info "WARNING: Detected operator '$detected_operator' not found in $HUBSFILE"
+        				log_info "Using configured provider: $PROVIDER"
+
+    				fi
+
+			else
+    				log_info "Mobile interface is up, operator unavailable. Using configured provider: $PROVIDER"
+			fi
+			
+			return 0
+		fi
+
+		log_debug "Waiting for mobile interface... elapsed: $(( $(date +%s) - start_time )) sec"
 		sleep 5
 	done
-		log_info "Timeout (${timeout} sec): no mobile interface is up, will use default provider name $PROVIDER"
-		return 1
+
+	log_info "Timeout (${timeout} sec): no mobile interface is up, using configured provider $PROVIDER"
+	return 1
 }
 
 # -----------------------------
@@ -736,6 +767,21 @@ log_info " "
 log_info "----------------------------------------------------"
 
 PROVIDER_SAFE=$(normalize "$PROVIDER")
+
+# Load hubs.json before initial mobile operator detection
+if [ -s "$HUBSFILE" ]; then
+    HUBS_JSON=$(cat "$HUBSFILE")
+
+    if echo "$HUBS_JSON" | jsonfilter -e '@' >/dev/null 2>&1; then
+        if load_cache; then
+            log_debug "Loaded operators from $HUBSFILE: $OPERATORS"
+        else
+            log_info "WARNING: Failed to load operator configuration"
+        fi
+    else
+        log_info "WARNING: Invalid JSON in $HUBSFILE"
+    fi
+fi
 
 [ -f "$STATE_FILE" ] && echo "OK" > "$STATE_FILE" # Reset escalation state file
 [ -f "$EVENT_LOG" ] && : > "$EVENT_LOG" # Reset event log file
